@@ -1,0 +1,12 @@
+service{
+    "HACKAJOB"."public.HackAJob.db::HackAJob.Users" as "users" navigates ("User_skills" as "Skills", "User_addr" as "AddrDetails")
+        create using "public.HackAJob.procedures::CreateUser";
+    "HACKAJOB"."public.HackAJob.db::HackAJob.User_skills" as "SkillMatch" navigates ("Skill_Details" as "SkillDetails","User_Details" as "UserDetails");
+    "HACKAJOB"."public.HackAJob.db::HackAJob.Skills" as "SkillDetails" with ("ID","SKILL");
+    "HACKAJOB"."public.HackAJob.db::HackAJob.Addresses" as "Addresses";
+        
+    association "User_skills" principal "users"("ID") multiplicity "1" dependent "SkillMatch"("USER_ID") multiplicity "*";
+    association "Skill_Details" principal "SkillMatch"("SKILL_ID") multiplicity "1" dependent "SkillDetails"("ID") multiplicity "1";
+    association "User_Details" principal "SkillMatch"("USER_ID") multiplicity "1" dependent "users"("ID") multiplicity "1";
+    association "User_addr" principal "Addresses"("ADDRESS_ID") multiplicity "1" dependent "users"("ADDR_ID") multiplicity "1";
+}
