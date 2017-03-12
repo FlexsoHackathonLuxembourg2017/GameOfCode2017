@@ -1,0 +1,8 @@
+schema= "HACKAJOB";
+start_with= 10;
+maxvalue= 10000;
+nomaxvalue=false;
+minvalue= 1;
+nominvalue=true;
+cycles= false;
+depends_on_table= "public.HackAJob.db::HackAJob.Users";

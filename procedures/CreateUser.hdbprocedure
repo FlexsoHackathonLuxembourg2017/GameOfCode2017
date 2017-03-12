@@ -1,0 +1,29 @@
+PROCEDURE "HACKAJOB"."public.HackAJob.procedures::CreateUser"(
+		IN intab "HACKAJOB"."public.HackAJob.db::HackAJob.procedures.UserCreate", 
+		OUT outtab "HACKAJOB"."public.HackAJob.db::HackAJob.procedures.errors"
+	)
+	LANGUAGE SQLSCRIPT
+	SQL SECURITY INVOKER
+AS
+BEGIN
+	DECLARE lv_user_id INTEGER;
+	DECLARE lv_username STRING;
+	DECLARE lv_addr_id INTEGER;
+	
+
+	SELECT ID, 
+			USERNAME,
+			ADDR_ID
+		INTO lv_user_id, 
+			lv_username,
+			lv_addr_id
+		FROM :intab;
+	IF (:lv_username = '') THEN
+		outtab = SELECT 500 AS http_status_code, 
+					'Invalid user name ' AS error_message, 
+					'No Way! User name field is mandatory' AS detail
+				FROM dummy;
+	ELSE
+		INSERT INTO "public.HackAJob.db::HackAJob.Users" VALUES("public.HackAJob.db::user".NEXTVAL, lv_username, lv_addr_id);
+	END IF;
+END;

@@ -1,0 +1,135 @@
+namespace public.HackAJob.db;
+using sap.hana.democontent.epm.data::EPM.BusinessKey;
+@Schema : 'HACKAJOB'
+
+Context HackAJob {
+
+    @Catalog.tableType : #COLUMN
+    entity Users {
+        key ID : Integer64;
+        USERNAME : String(255);
+        ADDR_ID : Integer64;
+        ADDR_DETAIL : Association[1] to Addresses on ADDR_DETAIL.ADDRESS_ID = ADDR_ID;
+        SKILLS : Association[*] to User_skills on SKILLS.USER_ID = ID;
+    };
+    
+    context procedures{
+        type UserCreate {
+            ID: Integer64;
+            USERNAME : String(255);
+            ADDR_ID : Integer64;
+        };
+        type errors {
+            HTTP_STATUS_CODE : Integer;
+            ERROR_MESSAGE : String(100);
+            DETAIL : String(100);
+        };
+    };
+    
+    @Catalog.tableType : #COLUMN
+    entity User_skills {
+        key USER_ID : Integer64;
+        key SKILL_ID : Integer64;
+        USER_DETAIL : Association[1] to Users on USER_DETAIL.ID = USER_ID;
+        SKILL_DETAIL : Association[1] to Skills on SKILL_DETAIL.ID = SKILL_ID;
+        SCORE : Integer;
+    };
+
+    @Catalog.tableType : #COLUMN
+    entity Skills {
+        key ID : Integer64;
+        SKILL : String(255);
+    };
+    
+    @Catalog.tableType : #COLUMN
+    entity Addresses {
+        key ADDRESS_ID : Integer64;
+        CITY_NAME : String(255);
+        ZIP_CODE : Integer;
+        STREET : String(255);
+        STREET_NR : String(20);
+        LATITUDE : Decimal(30, 14);
+        LONGITUDE : Decimal(30,14);
+    };
+    
+    @Catalog.tableType : #COLUMN
+    entity Companies {
+        key ID : Integer64;
+        COMPANY_NAME : String(255);
+        ADDR_ID : Integer64;
+        NACE_CODE : String(10);
+        ADDR_DETAIL : Association[1] to Addresses on ADDR_DETAIL.ADDRESS_ID = ADDR_ID;
+        SECTOR_DETAIL : Association[1] to Sectors on SECTOR_DETAIL.NACE_CODE = NACE_CODE;
+    };
+    
+    @Catalog.tableType : #COLUMN
+    entity Sectors {
+        key NACE_CODE : String(10);
+        DESCRIPTION : String(255);
+    };
+    
+    @Catalog.tableType : #COLUMN
+    entity Sector_skills {
+        key NACE_CODE : String(10);
+        key SKILL_ID : Integer64;
+        SECTOR_DETAIL : Association[1] to Sectors on SECTOR_DETAIL.NACE_CODE = NACE_CODE;
+        SKILL_DETAIL : Association[1] to Skills on SKILL_DETAIL.ID = SKILL_ID;
+        NACE_SCORE : Integer;
+    };
+    
+    view Sector_skills_match as select from User_skills as us_sk
+        left outer join Sector_skills as se_sk
+        on us_sk.SKILL_ID = se_sk.SKILL_ID
+        {
+            us_sk.USER_ID,
+            se_sk.NACE_CODE,
+            se_sk.SKILL_ID,
+            se_sk.NACE_SCORE,
+            coalesce(us_sk.SCORE,0) as USER_SCORE,
+            abs( se_sk.NACE_SCORE - coalesce(us_sk.SCORE,0) ) as TOTAL
+        };
+        
+    view Companies_match as select from Sector_skills_match
+        {
+            USER_ID,
+            NACE_CODE,
+            AVG(TOTAL) AS MATCH_SCORE
+        } GROUP BY USER_ID, NACE_CODE;
+    
+    view Companies_result as select from Companies_match as cm 
+        inner join Companies as c 
+        on c.NACE_CODE = cm.NACE_CODE
+        inner join Addresses as addr
+        on c.ADDR_ID = addr.ADDRESS_ID
+        inner join Sectors as s
+        on cm.NACE_CODE = s.NACE_CODE
+        {
+            key cm.USER_ID as USER_ID,
+            key c.COMPANY_NAME as COMPANY,
+            c.NACE_CODE,
+            s.DESCRIPTION,
+            addr.CITY_NAME,
+            addr.ZIP_CODE,
+            addr.STREET,
+            addr.STREET_NR,
+            addr.LATITUDE,
+            addr.LONGITUDE,
+            cm.MATCH_SCORE
+        };
+        
+    view CountryView as select from Addresses{
+            key ZIP_CODE as ID,
+            CITY_NAME
+        } GROUP BY ZIP_CODE, CITY_NAME;
+        
+    view User_skills_view as select from User_skills as us
+        inner join Skills as s
+        on us.SKILL_ID = s.ID
+        {
+            us.USER_ID,
+            us.SKILL_ID as ID,
+            s.SKILL,
+            us.SCORE
+        };
+    //@Search.fuzzinessThreshold : 0.8
+}

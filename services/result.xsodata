@@ -1,0 +1,3 @@
+service{
+    "HACKAJOB"."public.HackAJob.db::HackAJob.Companies_result" as "result" keys("USER_ID","COMPANY");  
+}

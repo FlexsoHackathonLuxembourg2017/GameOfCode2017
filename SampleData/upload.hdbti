@@ -1,0 +1,8 @@
+import = [
+            {
+                cdstable = "public.HackAJob.db::HackAJob.Skills";
+                file = "public.HackAJob.SampleData:skills_ID_2.csv";
+                delimField = ";"; 
+                header = true; 
+            }
+];
